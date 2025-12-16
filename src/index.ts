@@ -24,3 +24,8 @@ export * from "./core/decide";
 // AI analysis layer (non-intrusive)
 // ================================
 export * from "./ai/analyze";
+
+// ================================
+// Public API contracts (HTTP-safe)
+// ================================
+export * from "./api/types";
