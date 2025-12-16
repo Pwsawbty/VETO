@@ -1,6 +1,7 @@
 import { PostDecisionInput } from "./postInput";
 import { applyHardRules } from "./rules";
 import { Decision } from "./decisions";
+import { analyzeDecision } from "../ai/analyze";
 
 export interface DecisionResult {
   decision: Decision;
@@ -8,16 +9,32 @@ export interface DecisionResult {
   confidence: number;
 }
 
-export function decidePost(
-  input: PostDecisionInput
-): DecisionResult {
+export async function decidePost(
+  input: PostDecisionInput,
+  callLLM?: (prompt: string) => Promise<string>
+): Promise<DecisionResult> {
 
-  const { decision, reason } = applyHardRules(input);
+  const base = applyHardRules(input);
 
-  // Hard rules = high confidence by default
+  let reason = base.reason;
+  let confidence = 0.9;
+
+  if (callLLM) {
+    const analysis = await analyzeDecision({
+      platform: input.platform,
+      intent: input.intent,
+      decision: base.decision,
+      historySummary: `lastPostHours=${input.history.lastPostHours}, posts24h=${input.history.postsLast24h}`,
+      callLLM
+    });
+
+    if (analysis.reason) reason = analysis.reason;
+    if (analysis.confidence) confidence = analysis.confidence;
+  }
+
   return {
-    decision,
+    decision: base.decision,
     reason,
-    confidence: 0.9
+    confidence
   };
 }
